@@ -1,13 +1,56 @@
 "use client";
 
-import React from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import type { JDData, SnapshotItem } from "@/lib/jd/types";
 import { uid } from "@/lib/jd/types";
+import { LIMITS } from "@/lib/jd/fit";
 
 /* ------------------------------------------------------------ primitives -- */
 
 const input =
   "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/15";
+
+/**
+ * A single-line input with a hard character cap. The counter only appears
+ * once you are close to the limit, so it stays out of the way normally.
+ */
+function CountedInput({
+  value,
+  onChange,
+  maxLength,
+  className = "",
+  ...rest
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  maxLength: number;
+  className?: string;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "maxLength">) {
+  const used = value.length;
+  const show = used >= maxLength * 0.75;
+  const full = used >= maxLength;
+
+  return (
+    <div className="relative">
+      <input
+        {...rest}
+        value={value}
+        maxLength={maxLength}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${input} ${show ? "pr-16" : ""} ${className}`}
+      />
+      {show && (
+        <span
+          className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] tabular-nums ${
+            full ? "font-medium text-amber-600" : "text-slate-400"
+          }`}
+        >
+          {used}/{maxLength}
+        </span>
+      )}
+    </div>
+  );
+}
 
 function Field({
   label,
@@ -121,6 +164,43 @@ const UpIcon = () => (
   </svg>
 );
 
+/**
+ * A textarea that grows to fit its content — on first render as well as on
+ * typing, so a long pre-filled bullet is fully readable straight away.
+ */
+function AutoTextarea({
+  value,
+  onChange,
+  minRows = 1,
+  className = "",
+  ...rest
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  minRows?: number;
+  className?: string;
+} & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "value" | "onChange" | "rows">) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value, minRows]);
+
+  return (
+    <textarea
+      {...rest}
+      ref={ref}
+      value={value}
+      rows={minRows}
+      onChange={(e) => onChange(e.target.value)}
+      className={`${input} resize-none overflow-hidden leading-relaxed ${className}`}
+    />
+  );
+}
+
 /** A reorderable list of one-line bullet inputs. */
 function BulletEditor({
   items,
@@ -149,17 +229,10 @@ function BulletEditor({
       {items.map((item, i) => (
         <div key={i} className="flex items-start gap-2">
           <span className="mt-3.5 size-1.5 shrink-0 rounded-full bg-accent" />
-          <textarea
+          <AutoTextarea
             value={item}
-            onChange={(e) => set(i, e.target.value)}
+            onChange={(v) => set(i, v)}
             placeholder={placeholder}
-            rows={1}
-            onInput={(e) => {
-              const el = e.currentTarget;
-              el.style.height = "auto";
-              el.style.height = `${el.scrollHeight}px`;
-            }}
-            className={`${input} resize-none leading-relaxed`}
           />
           <div className="flex gap-1">
             <IconButton onClick={() => moveUp(i)} label="Move up" disabled={i === 0}>
@@ -202,27 +275,27 @@ export function JDForm({
     <div className="space-y-4">
       <Card title="Job header" subtitle="Shown in the blue banner on page 1">
         <Field label="Job title">
-          <input
+          <CountedInput
             value={jd.jobTitle}
-            onChange={(e) => patch({ jobTitle: e.target.value })}
+            onChange={(jobTitle) => patch({ jobTitle })}
+            maxLength={LIMITS.jobTitle}
             placeholder="Sales Development Representative (SDR)"
-            className={input}
           />
         </Field>
         <Field label="Tagline" hint="one line under the title">
-          <input
+          <CountedInput
             value={jd.tagline}
-            onChange={(e) => patch({ tagline: e.target.value })}
+            onChange={(tagline) => patch({ tagline })}
+            maxLength={LIMITS.tagline}
             placeholder="Pre-Sales   ·   The frontline hunter building NimbusPost's sales pipeline."
-            className={input}
           />
         </Field>
         <Field label="Eyebrow label">
-          <input
+          <CountedInput
             value={jd.eyebrow}
-            onChange={(e) => patch({ eyebrow: e.target.value })}
+            onChange={(eyebrow) => patch({ eyebrow })}
+            maxLength={LIMITS.eyebrow}
             placeholder="CAREERS"
-            className={input}
           />
         </Field>
       </Card>
@@ -232,17 +305,18 @@ export function JDForm({
           {jd.snapshot.map((item, i) => (
             <div key={item.id} className="flex items-start gap-2">
               <div className="grid flex-1 gap-2 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-                <input
+                <CountedInput
                   value={item.label}
-                  onChange={(e) => setSnapshot(i, { label: e.target.value.toUpperCase() })}
+                  onChange={(label) => setSnapshot(i, { label: label.toUpperCase() })}
+                  maxLength={LIMITS.snapshotLabel}
                   placeholder="LOCATION"
-                  className={`${input} font-medium uppercase tracking-wide text-brand`}
+                  className="font-medium uppercase tracking-wide text-brand"
                 />
-                <input
+                <CountedInput
                   value={item.value}
-                  onChange={(e) => setSnapshot(i, { value: e.target.value })}
+                  onChange={(value) => setSnapshot(i, { value })}
+                  maxLength={LIMITS.snapshotValue}
                   placeholder="Gurugram, Haryana"
-                  className={input}
                 />
               </div>
               <IconButton
@@ -272,18 +346,17 @@ export function JDForm({
 
       <Card title="About the company" defaultOpen={false}>
         <Field label="Section heading">
-          <input
+          <CountedInput
             value={jd.aboutHeading}
-            onChange={(e) => patch({ aboutHeading: e.target.value })}
-            className={input}
+            onChange={(aboutHeading) => patch({ aboutHeading })}
+            maxLength={LIMITS.sectionHeading}
           />
         </Field>
         <Field label="About text">
-          <textarea
+          <AutoTextarea
             value={jd.about}
-            onChange={(e) => patch({ about: e.target.value })}
-            rows={7}
-            className={`${input} resize-y leading-relaxed`}
+            onChange={(about) => patch({ about })}
+            minRows={5}
           />
         </Field>
         <Field label="Website line">
@@ -297,25 +370,24 @@ export function JDForm({
 
       <Card title="Role Overview">
         <Field label="Section heading">
-          <input
+          <CountedInput
             value={jd.overviewHeading}
-            onChange={(e) => patch({ overviewHeading: e.target.value })}
-            className={input}
+            onChange={(overviewHeading) => patch({ overviewHeading })}
+            maxLength={LIMITS.sectionHeading}
           />
         </Field>
         <Field label="Paragraphs">
           <div className="space-y-2">
             {jd.overview.map((p, i) => (
               <div key={i} className="flex items-start gap-2">
-                <textarea
+                <AutoTextarea
                   value={p}
-                  onChange={(e) =>
+                  onChange={(v) =>
                     patch({
-                      overview: jd.overview.map((x, idx) => (idx === i ? e.target.value : x)),
+                      overview: jd.overview.map((x, idx) => (idx === i ? v : x)),
                     })
                   }
-                  rows={4}
-                  className={`${input} resize-y leading-relaxed`}
+                  minRows={3}
                 />
                 <IconButton
                   onClick={() =>
@@ -345,10 +417,10 @@ export function JDForm({
 
       <Card title="Key Responsibilities">
         <Field label="Section heading">
-          <input
+          <CountedInput
             value={jd.responsibilitiesHeading}
-            onChange={(e) => patch({ responsibilitiesHeading: e.target.value })}
-            className={input}
+            onChange={(responsibilitiesHeading) => patch({ responsibilitiesHeading })}
+            maxLength={LIMITS.sectionHeading}
           />
         </Field>
         <BulletEditor
@@ -361,10 +433,10 @@ export function JDForm({
 
       <Card title="What We're Looking For">
         <Field label="Section heading">
-          <input
+          <CountedInput
             value={jd.lookingForHeading}
-            onChange={(e) => patch({ lookingForHeading: e.target.value })}
-            className={input}
+            onChange={(lookingForHeading) => patch({ lookingForHeading })}
+            maxLength={LIMITS.sectionHeading}
           />
         </Field>
 
@@ -372,17 +444,18 @@ export function JDForm({
           {jd.lookingFor.map((group, gi) => (
             <div key={group.id} className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
               <div className="mb-3 flex items-center gap-2">
-                <input
+                <CountedInput
                   value={group.heading}
-                  onChange={(e) =>
+                  onChange={(heading) =>
                     patch({
                       lookingFor: jd.lookingFor.map((g, idx) =>
-                        idx === gi ? { ...g, heading: e.target.value } : g,
+                        idx === gi ? { ...g, heading } : g,
                       ),
                     })
                   }
+                  maxLength={LIMITS.subHeading}
                   placeholder="Must-Haves"
-                  className={`${input} font-semibold text-brand`}
+                  className="font-semibold text-brand"
                 />
                 <IconButton
                   onClick={() =>
@@ -423,10 +496,10 @@ export function JDForm({
 
       <Card title="Why Join" defaultOpen={false}>
         <Field label="Section heading">
-          <input
+          <CountedInput
             value={jd.whyJoinHeading}
-            onChange={(e) => patch({ whyJoinHeading: e.target.value })}
-            className={input}
+            onChange={(whyJoinHeading) => patch({ whyJoinHeading })}
+            maxLength={LIMITS.sectionHeading}
           />
         </Field>
         <BulletEditor
@@ -439,41 +512,39 @@ export function JDForm({
 
       <Card title="How to Apply & footer" defaultOpen={false}>
         <Field label="Section heading">
-          <input
+          <CountedInput
             value={jd.howToApplyHeading}
-            onChange={(e) => patch({ howToApplyHeading: e.target.value })}
-            className={input}
+            onChange={(howToApplyHeading) => patch({ howToApplyHeading })}
+            maxLength={LIMITS.sectionHeading}
           />
         </Field>
         <Field label="Instructions">
-          <textarea
+          <AutoTextarea
             value={jd.howToApply}
-            onChange={(e) => patch({ howToApply: e.target.value })}
-            rows={4}
-            className={`${input} resize-y leading-relaxed`}
+            onChange={(howToApply) => patch({ howToApply })}
+            minRows={3}
           />
         </Field>
         <Field label="Equal opportunity statement">
-          <textarea
+          <AutoTextarea
             value={jd.eeo}
-            onChange={(e) => patch({ eeo: e.target.value })}
-            rows={5}
-            className={`${input} resize-y leading-relaxed`}
+            onChange={(eeo) => patch({ eeo })}
+            minRows={4}
           />
         </Field>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Footer left">
-            <input
+            <CountedInput
               value={jd.footerLeft}
-              onChange={(e) => patch({ footerLeft: e.target.value })}
-              className={input}
+              onChange={(footerLeft) => patch({ footerLeft })}
+              maxLength={48}
             />
           </Field>
           <Field label="Footer centre">
-            <input
+            <CountedInput
               value={jd.footerCenter}
-              onChange={(e) => patch({ footerCenter: e.target.value })}
-              className={input}
+              onChange={(footerCenter) => patch({ footerCenter })}
+              maxLength={48}
             />
           </Field>
         </div>

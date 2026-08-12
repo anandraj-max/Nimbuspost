@@ -5,6 +5,7 @@ import { COLORS, PAGE, TYPE } from "@/lib/brand";
 import { BrandLogo } from "@/components/BrandLogo";
 import { buildBlocks, type Block } from "./blocks";
 import type { JDData } from "@/lib/jd/types";
+import { WRAP, taglineFontSize, titleFontSize } from "@/lib/jd/fit";
 
 /** Last usable y before the footer hairline at 1073. */
 const CONTENT_BOTTOM = 1053;
@@ -113,42 +114,51 @@ function PageHeader({ jd }: { jd: JDData }) {
             color: "#fff",
             opacity: 0.82,
             whiteSpace: "nowrap",
+            maxWidth: 240,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {jd.eyebrow}
         </div>
       )}
 
+      {/* Title and tagline stack, so a long title pushes the tagline down
+          instead of colliding with it. Both shrink to stay in the band. */}
       <div
         style={{
           position: "absolute",
           left: PAGE.margin,
           top: 76,
           width: PAGE.contentWidth,
-          fontSize: TYPE.title,
-          lineHeight: 1.16,
-          fontWeight: 700,
-          color: "#fff",
         }}
       >
-        {jd.jobTitle}
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          left: PAGE.margin,
-          top: 111,
-          width: 620,
-          fontSize: TYPE.tagline,
-          lineHeight: 1.38,
-          fontWeight: 500,
-          color: "#fff",
-          opacity: 0.92,
-          whiteSpace: "pre-wrap",
-        }}
-      >
-        {jd.tagline}
+        <div
+          style={{
+            ...WRAP,
+            fontSize: titleFontSize(jd.jobTitle),
+            lineHeight: 1.16,
+            fontWeight: 700,
+            color: "#fff",
+          }}
+        >
+          {jd.jobTitle}
+        </div>
+        <div
+          style={{
+            ...WRAP,
+            marginTop: 5,
+            width: 620,
+            fontSize: taglineFontSize(jd.tagline),
+            lineHeight: 1.38,
+            fontWeight: 500,
+            color: "#fff",
+            opacity: 0.92,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {jd.tagline}
+        </div>
       </div>
     </div>
   );
@@ -199,14 +209,19 @@ function PageFooter({
   jd: JDData;
   pageNumber: number;
 }) {
-  const base: React.CSSProperties = {
-    position: "absolute",
-    top: PAGE.footerTextY,
+  /* Three equal columns rather than three absolute x-positions, so a long
+     footer string is clipped inside its own third instead of running off
+     the page. */
+  const cell: React.CSSProperties = {
+    flex: "1 1 0",
+    minWidth: 0,
     fontSize: TYPE.footer,
     lineHeight: 1,
     fontWeight: 500,
     color: COLORS.muted,
     whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   };
   return (
     <>
@@ -220,10 +235,20 @@ function PageFooter({
           background: COLORS.border,
         }}
       />
-      <div style={{ ...base, left: PAGE.margin }}>{jd.footerLeft}</div>
-      <div style={{ ...base, left: 349 }}>{jd.footerCenter}</div>
-      <div style={{ ...base, right: PAGE.margin, textAlign: "right" }}>
-        Page {pageNumber}
+      <div
+        style={{
+          position: "absolute",
+          left: PAGE.margin,
+          top: PAGE.footerTextY,
+          width: PAGE.contentWidth,
+          display: "flex",
+          alignItems: "baseline",
+          gap: 12,
+        }}
+      >
+        <div style={cell}>{jd.footerLeft}</div>
+        <div style={{ ...cell, textAlign: "center" }}>{jd.footerCenter}</div>
+        <div style={{ ...cell, textAlign: "right" }}>Page {pageNumber}</div>
       </div>
     </>
   );

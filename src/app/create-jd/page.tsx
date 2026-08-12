@@ -98,8 +98,8 @@ export default function CreateJDPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
-        <div className="no-print mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div className="page-shell mx-auto flex max-w-[1600px] flex-col px-4 py-6 sm:px-6">
+        <div className="no-print mb-6 flex shrink-0 flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-navy">Create JD</h1>
             <p className="mt-1 text-sm text-slate-500">
@@ -143,19 +143,24 @@ export default function CreateJDPage() {
           </p>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
-          <div className="no-print slim-scroll min-w-0 lg:max-h-[calc(100vh-190px)] lg:overflow-y-auto lg:pr-2">
+        {/* Two panes, each with its own scrollbar. `overscroll-contain` stops
+            a pane that has hit its end from handing the scroll to the other. */}
+        <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
+          <div className="no-print slim-scroll pane min-w-0 overscroll-contain lg:overflow-y-auto lg:pr-2">
             <JDForm jd={jd} onChange={setJd} />
           </div>
 
-          <div className="min-w-0">
-            <div className="no-print mb-3 flex items-center justify-between text-xs text-slate-500">
+          <div className="flex min-h-0 min-w-0 flex-col">
+            <div className="no-print mb-3 flex shrink-0 items-center justify-between text-xs text-slate-500">
               <span>
                 Live preview · A4 · {pageCount} page{pageCount === 1 ? "" : "s"}
               </span>
               <span>Auto-saved on this device</span>
             </div>
-            <div ref={previewWrap} className="overflow-hidden lg:sticky lg:top-20">
+            <div
+              ref={previewWrap}
+              className="slim-scroll pane min-h-0 flex-1 overscroll-contain lg:overflow-y-auto"
+            >
               <JDPreview jd={jd} scale={scale} onPageCount={setPageCount} />
             </div>
           </div>

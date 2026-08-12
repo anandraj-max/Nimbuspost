@@ -40,6 +40,14 @@ body {
   border-radius: 99px;
 }
 
+/* Create JD is a two-pane app screen: the window itself does not scroll on
+   desktop, each pane does. Below lg the page falls back to normal flow. */
+@media (min-width: 1024px) {
+  .page-shell {
+    height: calc(100vh - 3.5rem); /* viewport minus the 56px top bar */
+  }
+}
+
 @media print {
   body {
     background: #fff;
@@ -49,5 +57,15 @@ body {
   }
   .a4-scaler {
     transform: none !important;
+  }
+  /* Let the whole document flow onto paper instead of being clipped to a pane */
+  .page-shell {
+    height: auto !important;
+    display: block !important;
+    padding: 0 !important;
+  }
+  .pane {
+    overflow: visible !important;
+    max-height: none !important;
   }
 }

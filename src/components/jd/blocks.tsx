@@ -1,6 +1,7 @@
 import React from "react";
 import { COLORS, PAGE, TYPE } from "@/lib/brand";
 import type { JDData } from "@/lib/jd/types";
+import { WRAP } from "@/lib/jd/fit";
 
 /**
  * The JD is expressed as a flat list of atomic blocks. Both the on-screen
@@ -28,6 +29,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
     <div style={{ width: W }}>
       <div
         style={{
+          ...WRAP,
           fontSize: TYPE.sectionHeading,
           lineHeight: 1.22,
           fontWeight: 700,
@@ -53,6 +55,7 @@ function SubHeading({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
+        ...WRAP,
         width: W,
         fontSize: TYPE.subHeading,
         lineHeight: 1.3,
@@ -81,6 +84,7 @@ function Body({
   return (
     <div
       style={{
+        ...WRAP,
         width: W,
         fontSize: size,
         lineHeight,
@@ -115,6 +119,7 @@ export function Bullet({
       </div>
       <div
         style={{
+          ...WRAP,
           flex: "1 1 0",
           minWidth: 0,
           fontSize: TYPE.body,
@@ -145,6 +150,7 @@ function SnapshotCard({ label, value }: { label: string; value: string }) {
     >
       <div
         style={{
+          ...WRAP,
           fontSize: TYPE.snapshotLabel,
           lineHeight: 1.2,
           fontWeight: 600,
@@ -156,6 +162,7 @@ function SnapshotCard({ label, value }: { label: string; value: string }) {
       </div>
       <div
         style={{
+          ...WRAP,
           fontSize: TYPE.snapshotValue,
           lineHeight: 1.38,
           fontWeight: 500,
@@ -345,6 +352,7 @@ export function buildBlocks(jd: JDData): Block[] {
         <SoftCard>
           <div
             style={{
+              ...WRAP,
               width: W - 44 - 2,
               fontSize: TYPE.body,
               lineHeight: 1.55,

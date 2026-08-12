@@ -22,6 +22,7 @@ import {
   TYPE,
 } from "@/lib/brand";
 import type { JDData } from "./types";
+import { taglineFontSize, titleFontSize } from "./fit";
 
 /* -------------------------------------------------------------- units --- */
 /** Figma is drawn at 96dpi; PDF points are 72dpi. 794px === 595.5pt === A4. */
@@ -59,8 +60,18 @@ export function registerPdfFonts() {
       { src: `${fontBase}/Inter_700Bold.ttf`, fontWeight: 700 },
     ],
   });
-  // Keep words intact — the source design has no hyphenation.
-  Font.registerHyphenationCallback((word) => [word]);
+  /**
+   * The design has no hyphenation, so ordinary words are left intact.
+   * Unbroken runs longer than any column is wide (pasted IDs, long URLs)
+   * would otherwise spill outside their card, so those are chunked — which
+   * is the only mechanism react-pdf offers for breaking inside a word.
+   */
+  Font.registerHyphenationCallback((word) => {
+    if (word.length <= 28) return [word];
+    const parts: string[] = [];
+    for (let i = 0; i < word.length; i += 18) parts.push(word.slice(i, i + 18));
+    return parts;
+  });
 }
 
 /* -------------------------------------------------------------- styles --- */
@@ -125,23 +136,24 @@ const st = StyleSheet.create({
     letterSpacing: s(1.8),
     color: "#ffffff",
     opacity: 0.82,
+    maxWidth: s(240),
+    maxLines: 1,
+    textOverflow: "ellipsis",
   },
-  title: {
+  titleBlock: {
     position: "absolute",
     left: s(PAGE.margin),
     top: s(74),
     width: s(PAGE.contentWidth),
-    fontSize: s(TYPE.title),
+  },
+  title: {
     lineHeight: 1.16,
     fontWeight: 700,
     color: "#ffffff",
   },
   tagline: {
-    position: "absolute",
-    left: s(PAGE.margin),
-    top: s(109),
+    marginTop: s(5),
     width: s(620),
-    fontSize: s(TYPE.tagline),
     lineHeight: 1.38,
     fontWeight: 500,
     color: "#ffffff",
@@ -191,12 +203,21 @@ const st = StyleSheet.create({
     height: s(1),
     backgroundColor: COLORS.border,
   },
-  footerText: {
+  footerRow: {
     position: "absolute",
+    left: s(PAGE.margin),
     top: s(12),
+    width: s(PAGE.contentWidth),
+    flexDirection: "row",
+  },
+  footerCell: {
+    flex: 1,
     fontSize: s(TYPE.footer),
     fontWeight: 500,
     color: COLORS.muted,
+    paddingRight: s(12),
+    maxLines: 1,
+    textOverflow: "ellipsis",
   },
 
   /* content atoms */
@@ -377,23 +398,32 @@ export function JDPdfDocument({ jd }: { jd: JDData }) {
           <View style={{ position: "absolute", left: s(60), top: s(19) }}>
             <PdfLogo height={34} tone="light" />
           </View>
-          {!!jd.eyebrow.trim() && <Text style={st.eyebrow}>{jd.eyebrow}</Text>}
-          <Text style={st.title}>{jd.jobTitle}</Text>
-          <Text style={st.tagline}>{jd.tagline}</Text>
+          {!!jd.eyebrow.trim() && (
+            <Text style={st.eyebrow}>{jd.eyebrow}</Text>
+          )}
+          <View style={st.titleBlock}>
+            <Text style={[st.title, { fontSize: s(titleFontSize(jd.jobTitle)) }]}>
+              {jd.jobTitle}
+            </Text>
+            <Text style={[st.tagline, { fontSize: s(taglineFontSize(jd.tagline)) }]}>
+              {jd.tagline}
+            </Text>
+          </View>
         </View>
 
         {/* footer, every page */}
         <View fixed style={st.footerWrap}>
           <View style={st.footerRule} />
-          <Text style={[st.footerText, { left: s(PAGE.margin) }]}>{jd.footerLeft}</Text>
-          <Text style={[st.footerText, { left: s(349) }]}>{jd.footerCenter}</Text>
-          <Text
-            style={[
-              st.footerText,
-              { left: s(PAGE.margin), width: s(PAGE.contentWidth), textAlign: "right" },
-            ]}
-            render={({ pageNumber }) => `Page ${pageNumber}`}
-          />
+          <View style={st.footerRow}>
+            <Text style={st.footerCell}>{jd.footerLeft}</Text>
+            <Text style={[st.footerCell, { textAlign: "center" }]}>
+              {jd.footerCenter}
+            </Text>
+            <Text
+              style={[st.footerCell, { textAlign: "right", paddingRight: 0 }]}
+              render={({ pageNumber }) => `Page ${pageNumber}`}
+            />
+          </View>
         </View>
 
         {/* page 1 pushes content down past the masthead */}
