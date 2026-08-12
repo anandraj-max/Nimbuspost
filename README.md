@@ -109,20 +109,16 @@ points with a single `× 0.75`, so the export lands exactly on A4.
 
 ---
 
-## Using your official logo
+## Swapping the logo
 
-The header currently uses a hand-built vector mark. To use the real asset:
+The official NimbusPost lockup ships in two tones:
 
-1. Drop the file into `public/` — e.g. `public/nimbuspost-logo.png`
-   (PNG with a transparent background, around 400 px wide, works best).
-2. In `src/lib/brand.ts` set:
+- `public/nimbuspost-logo-white.png` — used on the blue masthead and the login panel
+- `public/nimbuspost-logo-blue.png` — used on white backgrounds (top bar, page 2 running header)
 
-   ```ts
-   export const LOGO_IMAGE_SRC: string | null = "/nimbuspost-logo.png";
-   ```
-
-That one line swaps the logo in the app, the preview and the PDF. For the blue
-header you'll want the white version of the mark.
+Replace those two files (keep the filenames) and the logo updates everywhere —
+app chrome, live preview, PDF and Word. If your new artwork has a different
+width-to-height ratio, update `LOGO_ASPECT` in `src/lib/brand.ts`.
 
 ---
 
