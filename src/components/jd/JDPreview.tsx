@@ -242,7 +242,14 @@ export function JDPreview({
 }) {
   const blocks = useMemo(() => buildBlocks(jd), [jd]);
   const measureRef = useRef<HTMLDivElement>(null);
-  const [pages, setPages] = useState<Placed[][]>([]);
+  /* The page split is stored together with the block list it was measured
+     from. Editing the form produces a new block list, and a split computed
+     from the old one would point at blocks that no longer exist — so it is
+     discarded rather than indexed into. */
+  const [layout, setLayout] = useState<{ src: Block[]; pages: Placed[][] }>({
+    src: [],
+    pages: [],
+  });
   const [fontsReady, setFontsReady] = useState(false);
 
   useEffect(() => {
@@ -264,8 +271,16 @@ export function JDPreview({
     const heights = Array.from(el.children).map(
       (c) => (c as HTMLElement).getBoundingClientRect().height,
     );
-    setPages(paginate(blocks, heights));
+    setLayout({ src: blocks, pages: paginate(blocks, heights) });
   }, [blocks, fontsReady]);
+
+  /* Until the measuring pass catches up with an edit, fall back to a single
+     page holding everything. The layout effect corrects it before paint, so
+     this is never visible — it just guarantees valid indices. */
+  const pages =
+    layout.src === blocks
+      ? layout.pages
+      : [blocks.map((b, index) => ({ index, mt: index === 0 ? 0 : b.mt }))];
 
   useEffect(() => {
     if (pages.length) onPageCount?.(pages.length);
